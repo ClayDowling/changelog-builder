@@ -1,3 +1,4 @@
+#include "cjson.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,40 +52,42 @@ void generate_test(FILE *out, struct key_t *TOP) {
 void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
   struct key_t *cur = TOP;
 
-  fprintf(out,
-          "{\n"
-          "    'utcDateTime': '2017-12-18T12:48:22.8535780',\n"
-          "    'transactionId': 18122013,\n"
-          "    'operation': 'I',\n"
-          "    'tableName': '%s',\n"
-          "    'schema': 'C05DBSYNC',\n"
-          "    'uniqueKey': [\n"
-          "        {\n"
-          "            'Name': 'CourtType',\n"
-          "            'dataType': 'varchar',\n"
-          "            'length': 1,\n"
-          "            'precision': 0,\n"
-          "            'scale': 0\n"
-          "        }\n"
-          "    ],\n"
-          "    'columns': [\n",
-          tablename);
+  cJSON *doc = cJSON_CreateObject();
+  cJSON_AddStringToObject(doc, "utcDateTime", "2017-12-18T12:48:22.8535780");
+  cJSON_AddStringToObject(doc, "transactionId", "18122013");
+  cJSON_AddStringToObject(doc, "operation", "I");
+  cJSON_AddStringToObject(doc, "tableName", tablename);
+  cJSON_AddStringToObject(doc, "schema", "C05DBSYNC");
+
+  cJSON *uniqueKey = cJSON_CreateArray();
+  cJSON_AddItemToObject(doc, "uniqueKey", uniqueKey);
+
+  cJSON *key = cJSON_CreateObject();
+  cJSON_AddStringToObject(key, "Name", "CourtType");
+  cJSON_AddStringToObject(key, "dataType", "varchar");
+  cJSON_AddNumberToObject(key, "length", 1);
+  cJSON_AddNumberToObject(key, "precision", 0);
+  cJSON_AddNumberToObject(key, "scale", 0);
+  cJSON_AddItemToArray(uniqueKey, key);
+
+  cJSON *columns = cJSON_AddArrayToObject(doc, "columns");
   while (cur) {
-    fprintf(out,
-            "    {\n"
-            "        'name': '%s',\n"
-            "        'value': {\n"
-            "            'new': '%s'\n"
-            "        },\n"
-            "        'dataType': 'varchar',\n"
-            "        'length': 3,\n"
-            "        'precision': 0,\n"
-            "        'scale': 0\n"
-            "    },\n",
-            cur->key, cur->value);
+    cJSON *col = cJSON_CreateObject();
+    cJSON_AddItemToArray(columns, col);
+
+    cJSON_AddStringToObject(col, "name", cur->key);
+    cJSON *val = cJSON_AddObjectToObject(col, "value");
+    cJSON_AddStringToObject(val, "new", cur->value);
+    cJSON_AddStringToObject(col, "dataType", "varchar");
+    cJSON_AddNumberToObject(col, "length", 3);
+    cJSON_AddNumberToObject(col, "precision", 0);
+    cJSON_AddNumberToObject(col, "scale", 0);
     cur = cur->next;
   }
-  fputs("   ]\n}\n", out);
+
+  fputs(cJSON_Print(doc), out);
+
+  cJSON_Delete(doc);
 }
 
 int main(int argc, char **argv) {
