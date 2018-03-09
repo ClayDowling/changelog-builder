@@ -50,6 +50,10 @@ struct key_t *read_list(FILE *in) {
     case UPDATE:
       strcpy(mbr->old, second);
       strcpy(mbr->new, third);
+      break;
+    case DELETE:
+      strcpy(mbr->old, second);
+      break;
     }
 
     mbr->next = TOP;
@@ -127,9 +131,10 @@ int main(int argc, char **argv) {
 
   struct option opts[] = {{"table", required_argument, 0, 't'},
                           {"object", required_argument, 0, 'o'},
-                          {"update", no_argument, 0, 'u'}};
+                          {"update", no_argument, 0, 'u'},
+                          {"delete", no_argument, 0, 'd'}};
 
-  while ((opt = getopt_long(argc, argv, "t:o:u", opts, &opt_index)) != -1) {
+  while ((opt = getopt_long(argc, argv, "t:o:ud", opts, &opt_index)) != -1) {
     switch (opt) {
     case 't':
       tablename = optarg;
@@ -139,6 +144,9 @@ int main(int argc, char **argv) {
       break;
     case 'u':
       changetype = UPDATE;
+      break;
+    case 'd':
+      changetype = DELETE;
       break;
     }
   }
