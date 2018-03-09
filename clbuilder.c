@@ -119,9 +119,26 @@ void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
   cJSON_Delete(doc);
 }
 
+void help() {
+  fputs(
+      "usage: clbuilder [options] < source.csv\n"
+      "\n"
+      "Options:\n"
+      "--table=name      Use table [name] in Json object, name.json, name.cs\n"
+      "--insert          Create a Changelog for an insert operation (default)\n"
+      "                    CSV file format:\n"
+      "                      key,new\n"
+      "--update          Create a Changelog for an update operation\n"
+      "                    CSV file format:\n"
+      "                      key,old,new\n"
+      "--delete          Create a Changelog for a delete operation\n"
+      "                    CSV file format:\n"
+      "                      key,old\n",
+      stderr);
+}
+
 int main(int argc, char **argv) {
-  char *tablename = "TABLENAME";
-  char *objectname = NULL;
+  char *tablename = NULL;
   char testfilename[80];
   char jsonfilename[80];
   FILE *json = NULL;
@@ -130,7 +147,7 @@ int main(int argc, char **argv) {
   int opt;
 
   struct option opts[] = {{"table", required_argument, 0, 't'},
-                          {"object", required_argument, 0, 'o'},
+                          {"insert", no_argument, 0, 'i'},
                           {"update", no_argument, 0, 'u'},
                           {"delete", no_argument, 0, 'd'}};
 
@@ -139,28 +156,28 @@ int main(int argc, char **argv) {
     case 't':
       tablename = optarg;
       break;
-    case 'o':
-      objectname = optarg;
-      break;
     case 'u':
       changetype = UPDATE;
       break;
     case 'd':
       changetype = DELETE;
       break;
+    case 'i':
+      changetype = INSERT;
+      break;
+    case '?':
+      help();
+      exit(EXIT_FAILURE);
     }
   }
 
   if (NULL == tablename) {
-    strcpy(testfilename, "test.cs");
+    strcpy(testfilename, "changelog.cs");
+    strcpy(jsonfilename, "changelog.json");
+    tablename = "INSERT_TABLENAME_HERE";
   } else {
     snprintf(testfilename, sizeof(testfilename), "%s.cs", tablename);
-  }
-
-  if (NULL == objectname) {
-    strcpy(jsonfilename, "changelog.json");
-  } else {
-    snprintf(jsonfilename, sizeof(jsonfilename), "%s.json", objectname);
+    snprintf(jsonfilename, sizeof(jsonfilename), "%s.json", tablename);
   }
 
   struct key_t *keys = read_list(stdin);
@@ -171,5 +188,5 @@ int main(int argc, char **argv) {
   generate_json(json, keys, tablename);
   generate_test(test, keys);
 
-  return 0;
+  return EXIT_SUCCESS;
 }
