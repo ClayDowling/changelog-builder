@@ -75,12 +75,26 @@ void generate_test(FILE *out, struct key_t *TOP) {
 
 void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
   struct key_t *cur = TOP;
+  char operation[2];
+  operation[1] = 0;
+
+  switch (changetype) {
+  case INSERT:
+    operation[0] = 'I';
+    break;
+  case UPDATE:
+    operation[0] = 'U';
+    break;
+  case DELETE:
+    operation[0] = 'D';
+    break;
+  }
 
   cJSON *doc = cJSON_CreateObject();
   cJSON_AddStringToObject(doc, "utcDateTime", "2017-12-18T12:48:22.8535780");
   cJSON_AddNumberToObject(doc, "transactionId", 18122013);
   cJSON_AddStringToObject(doc, "userId", "cdowling@pillartechnology.com");
-  cJSON_AddStringToObject(doc, "operation", "I");
+  cJSON_AddStringToObject(doc, "operation", operation);
   cJSON_AddStringToObject(doc, "tableName", tablename);
   cJSON_AddStringToObject(doc, "schema", "C05DBSYNC");
 
