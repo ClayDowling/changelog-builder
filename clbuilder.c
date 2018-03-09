@@ -18,6 +18,13 @@ struct key_t {
   struct key_t *next;
 };
 
+void trim_trailing_newline(char *field) {
+  char *pos = field + strlen(field) - 1;
+  if ('\n' == *pos) {
+    *pos = '\0';
+  }
+}
+
 struct key_t *read_list(FILE *in) {
   char line[3 * KEY_SIZE + 7];
   char *token;
@@ -36,6 +43,7 @@ struct key_t *read_list(FILE *in) {
     third = NULL;
     first = strtok(line, ",\t");
     while ((token = strtok(NULL, ",\t"))) {
+      trim_trailing_newline(token);
       if (NULL == second) {
         second = token;
       } else if (NULL == third) {
