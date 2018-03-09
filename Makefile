@@ -1,4 +1,4 @@
-CFLAGS=-std=c11
+CFLAGS=-std=c11 -D_BSD_SOURCE
 
 OBJS=$(patsubst %.c,%.o,$(wildcard *.c))
 

@@ -1,39 +1,59 @@
 #include "cjson.h"
 #include <ctype.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define KEY_SIZE 40
 
+enum changetype_t { INSERT, UPDATE, DELETE };
+
+enum changetype_t changetype = INSERT;
+
 struct key_t {
   char key[KEY_SIZE];
-  char value[KEY_SIZE];
+  char old[KEY_SIZE];
+  char new[KEY_SIZE];
   struct key_t *next;
 };
 
 struct key_t *read_list(FILE *in) {
-  char line[2 * KEY_SIZE + 5];
-  char *comma;
-  char *trail;
-
+  char line[3 * KEY_SIZE + 7];
+  char *token;
+  char *first;
+  char *second;
+  char *third;
   struct key_t *TOP = NULL;
+  struct key_t *mbr;
 
   while (!feof(in)) {
     fgets(line, sizeof(line), in);
-    comma = strchr(line, ',');
-    if (comma) {
-      struct key_t *mbr = (struct key_t *)calloc(1, sizeof(struct key_t));
-      strncpy(mbr->key, line, comma - line);
-      strncpy(mbr->value, comma + 1, strlen(comma) - 1);
 
-      trail = &mbr->value[strlen(mbr->value) - 1];
-      if (isspace(*trail))
-        *trail = 0;
-
-      mbr->next = TOP;
-      TOP = mbr;
+    mbr = (struct key_t *)calloc(1, sizeof(struct key_t));
+    first = NULL;
+    second = NULL;
+    third = NULL;
+    first = strtok(line, ",\t");
+    while ((token = strtok(NULL, ",\t"))) {
+      if (NULL == second) {
+        second = token;
+      } else if (NULL == third) {
+        third = token;
+      }
     }
+    strcpy(mbr->key, first);
+    switch (changetype) {
+    case INSERT:
+      strcpy(mbr->new, second);
+      break;
+    case UPDATE:
+      strcpy(mbr->old, second);
+      strcpy(mbr->new, third);
+    }
+
+    mbr->next = TOP;
+    TOP = mbr;
   }
 
   return TOP;
@@ -43,7 +63,7 @@ void generate_test(FILE *out, struct key_t *TOP) {
   struct key_t *cur = TOP;
 
   while (cur) {
-    fprintf(out, "Assert.Equal(\"%s\", tbl[\"%s\"].ToString());\n", cur->value,
+    fprintf(out, "Assert.Equal(\"%s\", tbl[\"%s\"].ToString());\n", cur->new,
             cur->key);
     cur = cur->next;
   }
@@ -77,7 +97,12 @@ void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
 
     cJSON_AddStringToObject(col, "name", cur->key);
     cJSON *val = cJSON_AddObjectToObject(col, "value");
-    cJSON_AddStringToObject(val, "new", cur->value);
+    if (cur->old[0]) {
+      cJSON_AddStringToObject(val, "old", cur->old);
+    }
+    if (cur->new[0]) {
+      cJSON_AddStringToObject(val, "new", cur->new);
+    }
     cJSON_AddStringToObject(col, "dataType", "varchar");
     cJSON_AddNumberToObject(col, "length", 3);
     cJSON_AddNumberToObject(col, "precision", 0);
@@ -97,13 +122,24 @@ int main(int argc, char **argv) {
   char jsonfilename[80];
   FILE *json = NULL;
   FILE *test = NULL;
+  int opt_index = 0;
+  int opt;
 
-  for (int i = 1; i < argc; ++i) {
-    if (strcmp(argv[i], "--table") == 0) {
-      tablename = argv[i + 1];
-    }
-    if (strcmp(argv[i], "--object") == 0) {
-      objectname = argv[i + 1];
+  struct option opts[] = {{"table", required_argument, 0, 't'},
+                          {"object", required_argument, 0, 'o'},
+                          {"update", no_argument, 0, 'u'}};
+
+  while ((opt = getopt_long(argc, argv, "t:o:u", opts, &opt_index)) != -1) {
+    switch (opt) {
+    case 't':
+      tablename = optarg;
+      break;
+    case 'o':
+      objectname = optarg;
+      break;
+    case 'u':
+      changetype = UPDATE;
+      break;
     }
   }
 
