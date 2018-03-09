@@ -79,6 +79,7 @@ void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
   cJSON *doc = cJSON_CreateObject();
   cJSON_AddStringToObject(doc, "utcDateTime", "2017-12-18T12:48:22.8535780");
   cJSON_AddNumberToObject(doc, "transactionId", 18122013);
+  cJSON_AddStringToObject(doc, "userId", "cdowling@pillartechnology.com");
   cJSON_AddStringToObject(doc, "operation", "I");
   cJSON_AddStringToObject(doc, "tableName", tablename);
   cJSON_AddStringToObject(doc, "schema", "C05DBSYNC");
