@@ -71,12 +71,24 @@ struct key_t *read_list(FILE *in) {
   return TOP;
 }
 
+void output_test_line(FILE *out, char *dictionary, char *key, char *value) {
+  fprintf(out, "Assert.Equal(\"%s\", %s[\"%s\"].ToString());\n", value,
+          dictionary, key);
+}
+
 void generate_test(FILE *out, struct key_t *TOP) {
   struct key_t *cur = TOP;
 
   while (cur) {
-    fprintf(out, "Assert.Equal(\"%s\", tbl[\"%s\"].ToString());\n", cur->new,
-            cur->key);
+    output_test_line(out, "before", cur->key, cur->old);
+    cur = cur->next;
+  }
+
+  fprintf(out, "\n");
+
+  cur = TOP;
+  while (cur) {
+    output_test_line(out, "after", cur->key, cur->new);
     cur = cur->next;
   }
 }
