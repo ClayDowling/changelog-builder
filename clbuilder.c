@@ -93,7 +93,8 @@ void generate_test(FILE *out, struct key_t *TOP) {
   }
 }
 
-void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
+void generate_json(FILE *out, struct key_t *TOP, char *tablename,
+                   int formatted) {
   struct key_t *cur = TOP;
   char operation[2];
   operation[1] = 0;
@@ -149,7 +150,11 @@ void generate_json(FILE *out, struct key_t *TOP, char *tablename) {
     cur = cur->next;
   }
 
-  fputs(cJSON_Print(doc), out);
+  if (formatted) {
+    fputs(cJSON_Print(doc), out);
+  } else {
+    fputs(cJSON_PrintUnformatted(doc), out);
+  }
 
   cJSON_Delete(doc);
 }
@@ -168,7 +173,8 @@ void help() {
       "                      key,old,new\n"
       "--delete          Create a Changelog for a delete operation\n"
       "                    CSV file format:\n"
-      "                      key,old\n",
+      "                      key,old\n"
+      "--unformatted     Output the Json unformatted\n",
       stderr);
 }
 
@@ -180,11 +186,13 @@ int main(int argc, char **argv) {
   FILE *test = NULL;
   int opt_index = 0;
   int opt;
+  int formatted = 1;
 
   struct option opts[] = {{"table", required_argument, 0, 't'},
                           {"insert", no_argument, 0, 'i'},
                           {"update", no_argument, 0, 'u'},
-                          {"delete", no_argument, 0, 'd'}};
+                          {"delete", no_argument, 0, 'd'},
+                          {"unformatted", no_argument, 0, 'n'}};
 
   while ((opt = getopt_long(argc, argv, "t:o:ud", opts, &opt_index)) != -1) {
     switch (opt) {
@@ -199,6 +207,9 @@ int main(int argc, char **argv) {
       break;
     case 'i':
       changetype = INSERT;
+      break;
+    case 'n':
+      formatted = 0;
       break;
     case '?':
       help();
@@ -220,7 +231,7 @@ int main(int argc, char **argv) {
   json = fopen(jsonfilename, "w");
   test = fopen(testfilename, "w");
 
-  generate_json(json, keys, tablename);
+  generate_json(json, keys, tablename, formatted);
   generate_test(test, keys);
 
   return EXIT_SUCCESS;
